@@ -27,11 +27,11 @@ WEIGHTS: Dict[str, float] = {
     "w_merge_rate": 0.25,
     "w_total_prs_merged": 0.20,
     "w_time_to_merge_inv": 0.20,  # median_time_to_merge inverse (higher is better)
-    "w_product_impact_ratio": 0.15,
-    "w_activity_score": 0.10,
-    "w_days_active": 0.05,
-    "w_recent_prs": 0.05,
-    "w_stability": 0.05,
+    "w_product_impact_ratio": 0,    # doesnt give any information
+    "w_activity_score": 0,  # is redundant
+    "w_days_active": 0.15,
+    "w_recent_prs": 0.10,
+    "w_stability": 0.10,
 }
 
 

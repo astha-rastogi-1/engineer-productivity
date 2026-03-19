@@ -120,9 +120,28 @@ def main() -> None:
     metric_to_weight = {col: weight for (col, _, weight) in CONTRIBUTING_METRICS}
     metric_cols = [col for (col, _, _) in CONTRIBUTING_METRICS if col in top5.columns]
 
+    # For the contribution table we show non-normalized values (no inverses),
+    # while keeping charts/metric descriptions based on the normalized metrics.
+    TABLE_VALUE_COL: Dict[str, str] = {
+        "merge_rate_norm": "merge_rate",
+        "total_prs_merged_norm": "total_prs_merged",
+        "median_time_to_merge_inv_norm": "median_time_to_merge",  # explicitly not the inverse
+        "product_impact_ratio_norm": "product_impact_ratio",
+        "activity_score_norm": "activity_score",
+        "days_active_norm": "days_active",
+        "recent_prs_norm": "recent_prs",
+        "stability_norm": "stability",
+    }
+
+    # Header labels: camelCase without `_norm` and without the `Inv` part.
+    TABLE_HEADER_BASE_COL: Dict[str, str] = {
+        "median_time_to_merge_inv_norm": "median_time_to_merge",
+    }
+
     def metric_header(metric_col: str) -> str:
         w = metric_to_weight.get(metric_col, 0.0)
-        return f"{snake_to_camel(metric_col)} (w={w:.2f})"
+        base = TABLE_HEADER_BASE_COL.get(metric_col, metric_col)
+        return f"{snake_to_camel(base)} (w={w:.2f})"
 
     # Sidebar controls.
     st.sidebar.header("Controls")
@@ -149,13 +168,35 @@ def main() -> None:
 
     # Contribution table (values only; weights in column headers).
     st.subheader("Top 5 Engineers")
-    table_df = top5[["author", "impact_score"] + metric_cols].rename(
+
+    table_df = top5[["author", "impact_score"]].rename(
         columns={"author": "engineerName", "impact_score": "impactScore"}
     )
+
+    for metric_col in metric_cols:
+        value_col = TABLE_VALUE_COL.get(metric_col)
+        if not value_col or value_col not in top5.columns:
+            table_df[metric_col] = np.nan
+            continue
+
+        table_df[metric_col] = top5[value_col]
+
     table_df = table_df.rename(columns={m: metric_header(m) for m in metric_cols})
-    # Round numeric columns for cleaner UI.
+
+    # Round numeric columns for cleaner UI; format time-to-merge with units.
     for col in table_df.columns:
-        if col != "engineerName":
+        if col == "engineerName":
+            continue
+        if col.startswith("medianTimeToMerge") or col.startswith("medianTimeToMerge ("):
+            # Convert to "X.XXXX days" string for clarity.
+            def _fmt_days(v):
+                v_num = pd.to_numeric(v, errors="coerce")
+                if pd.isna(v_num):
+                    return "NA"
+                return f"{float(v_num):.4f} days"
+
+            table_df[col] = table_df[col].map(_fmt_days)
+        else:
             table_df[col] = pd.to_numeric(table_df[col], errors="coerce").round(4)
     st.dataframe(table_df, use_container_width=True)
 
