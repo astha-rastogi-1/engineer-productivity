@@ -18,12 +18,12 @@ WEIGHTS: Dict[str, float] = {
     # Must match the defaults used in `score_users_from_op.py`
     "w_merge_rate": 0.25,
     "w_total_prs_merged": 0.20,
-    "w_time_to_merge_inv": 0.20,
-    "w_product_impact_ratio": 0.15,
-    "w_activity_score": 0.10,
-    "w_days_active": 0.05,
-    "w_recent_prs": 0.05,
-    "w_stability": 0.05,
+    "w_time_to_merge_inv": 0.20,  # median_time_to_merge inverse (higher is better)
+    "w_product_impact_ratio": 0,    # doesnt give any information
+    "w_activity_score": 0,  # is redundant
+    "w_days_active": 0.15,
+    "w_recent_prs": 0.10,
+    "w_stability": 0.10,
 }
 
 # Normalized metric columns in `scored_op.csv` that contribute to `impact_score`.
@@ -254,27 +254,27 @@ def main() -> None:
                 f"{top_engineer} leads with impact score {impact:.3f}, driven by {drivers_text}."
             )
 
-        # 2) Fastest (max median_time_to_merge_inv_norm).
-        if "median_time_to_merge_inv_norm" in full_df.columns:
-            inv_series = pd.to_numeric(full_df["median_time_to_merge_inv_norm"], errors="coerce")
-            if inv_series.notna().any():
-                fastest_idx = int(inv_series.idxmax())
-                fastest = full_df.loc[fastest_idx]
-                fastest_name = str(fastest["author"])
-                median_days = _format_days(fastest.get("median_time_to_merge"))
-                insights.append(f"{fastest_name} has the fastest PR turnaround (median merge time: {median_days}).")
+        # # 2) Fastest (max median_time_to_merge_inv_norm).
+        # if "median_time_to_merge_inv_norm" in full_df.columns:
+        #     inv_series = pd.to_numeric(full_df["median_time_to_merge_inv_norm"], errors="coerce")
+        #     if inv_series.notna().any():
+        #         fastest_idx = int(inv_series.idxmax())
+        #         fastest = full_df.loc[fastest_idx]
+        #         fastest_name = str(fastest["author"])
+        #         median_days = _format_days(fastest.get("median_time_to_merge"))
+        #         insights.append(f"{fastest_name} has the fastest PR turnaround (median merge time: {median_days}).")
 
-        # 3) Most consistent (min stability).
-        if "stability" in full_df.columns:
-            stab_series = pd.to_numeric(full_df["stability"], errors="coerce")
-            stab_series = stab_series.dropna()
-            if not stab_series.empty:
-                consistent_idx = int(stab_series.idxmin())
-                consistent = full_df.loc[consistent_idx]
-                consistent_name = str(consistent["author"])
-                insights.append(
-                    f"{consistent_name} is the most consistent (lowest time-to-merge variance: {float(consistent['stability']):.3f})."
-                )
+        # # 3) Most consistent (min stability).
+        # if "stability" in full_df.columns:
+        #     stab_series = pd.to_numeric(full_df["stability"], errors="coerce")
+        #     stab_series = stab_series.dropna()
+        #     if not stab_series.empty:
+        #         consistent_idx = int(stab_series.idxmin())
+        #         consistent = full_df.loc[consistent_idx]
+        #         consistent_name = str(consistent["author"])
+        #         insights.append(
+        #             f"{consistent_name} is the most consistent (lowest time-to-merge variance: {float(consistent['stability']):.3f})."
+        #         )
 
         # 4) Most active (max days_active).
         if "days_active" in full_df.columns:
