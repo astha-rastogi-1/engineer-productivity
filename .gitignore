@@ -1,0 +1,4 @@
+*.weave
+*__pycache__/
+*.csv
+config.py
